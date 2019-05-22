@@ -16,15 +16,25 @@ import {
   V,
 } from './const';
 import {
-  getMin, getMax, getTime, getMilli,
+  getMin, getMax, getTime, getMilli, compress, uncompress
 } from './utils';
-import LZString from './lz-string';
 
 localForage.config({
   name: 'mini-graph-card',
   version: 1.0,
   storeName: 'entity_history_cache',
   description: 'Mini graph card uses caching for the entity history',
+});
+
+localForage.iterate(function(value, key, iterationNumber) {
+  value = uncompress(value);
+  const start = new Date();
+  start.setHours(start.getHours() - value.hours_to_show);
+  if (new Date(value.last_fetched) < start) {
+    localForage.removeItem(key);
+  }
+}).catch(function(err) {
+  console.log('Purging has errored:', err);
 });
 
 class MiniGraphCard extends LitElement {
@@ -601,7 +611,7 @@ class MiniGraphCard extends LitElement {
 
     const end = new Date();
     const start = new Date();
-    start.setMilliseconds(end.getMilliseconds() - getMilli(config.hours_to_show));
+    start.setHours(end.getHours() - config.hours_to_show);
 
     try {
       const promise = this.entity.map((entity, i) => this.updateEntity(entity, i, start, end));
@@ -641,11 +651,11 @@ class MiniGraphCard extends LitElement {
 
   async getCache(key) {
     const data = await localForage.getItem(key);
-    return data ? typeof data === 'string' ? JSON.parse(LZString.decompress(data)) : data : null;
+    return data ? uncompress(data) : null;
   }
 
   async setCache(key, data) {
-    return localForage.setItem(key, LZString.compress(JSON.stringify(data)));
+    return localForage.setItem(key, compress(data));
   }
 
   async updateEntity(entity, index, initStart, end) {

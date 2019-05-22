@@ -641,7 +641,7 @@ class MiniGraphCard extends LitElement {
 
   async getCache(key) {
     const data = await localForage.getItem(key);
-    return data ? JSON.parse(LZString.decompress(data)) : null;
+    return data ? typeof data === 'string' ? JSON.parse(LZString.decompress(data)) : data : null;
   }
 
   async setCache(key, data) {

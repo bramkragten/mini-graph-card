@@ -657,7 +657,7 @@ class MiniGraphCard extends LitElement {
     const history = await this.getCache(entity.entity_id);
     if (history && history.hours_to_show === this.config.hours_to_show) {
       stateHistory = history.data;
-      stateHistory = stateHistory.filter(item => new Date(item.last_updated) > initStart);
+      stateHistory = stateHistory.filter(item => new Date(item.last_changed) > initStart);
       if (stateHistory.length > 0) {
         skipInitialState = true;
       }
@@ -670,6 +670,7 @@ class MiniGraphCard extends LitElement {
     let newStateHistory = await this.fetchRecent(entity.entity_id, start, end, skipInitialState);
     if (newStateHistory[0] && newStateHistory[0].length > 0) {
       newStateHistory = newStateHistory[0].filter(item => !Number.isNaN(parseFloat(item.state)));
+      newStateHistory = newStateHistory.map(item => {delete item.last_updated; delete item.entity_id; delete item.attributes; delete item.context; return item;});
       stateHistory = [...stateHistory, ...newStateHistory];
 
       this

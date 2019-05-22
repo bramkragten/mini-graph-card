@@ -18,6 +18,7 @@ import {
 import {
   getMin, getMax, getTime, getMilli,
 } from './utils';
+import LZString from './lz-string';
 
 localForage.config({
   name: 'mini-graph-card',
@@ -638,13 +639,22 @@ class MiniGraphCard extends LitElement {
     }
   }
 
+  async getCache(key) {
+    const data = await localForage.getItem(key);
+    return data ? JSON.parse(LZString.decompress(data)) : null;
+  }
+
+  async setCache(key, data) {
+    return localForage.setItem(key, LZString.compress(JSON.stringify(data)));
+  }
+
   async updateEntity(entity, index, initStart, end) {
     if (!entity || !this.updateQueue.includes(entity.entity_id)) return;
     let stateHistory = [];
     let start = initStart;
     let skipInitialState = false;
 
-    const history = await localForage.getItem(entity.entity_id);
+    const history = await this.getCache(entity.entity_id);
     if (history && history.hours_to_show === this.config.hours_to_show) {
       stateHistory = history.data;
       stateHistory = stateHistory.filter(item => new Date(item.last_updated) > initStart);
@@ -662,8 +672,8 @@ class MiniGraphCard extends LitElement {
       newStateHistory = newStateHistory[0].filter(item => !Number.isNaN(parseFloat(item.state)));
       stateHistory = [...stateHistory, ...newStateHistory];
 
-      localForage
-        .setItem(entity.entity_id, {
+      this
+        .setCache(entity.entity_id, {
           hours_to_show: this.config.hours_to_show,
           last_fetched: end,
           data: stateHistory,
